@@ -10,7 +10,7 @@ const generateAccessAndRefreshToken = async(userId) => {
         const accessToken = user.generateAccessToken()
         const refreshToken = user.generateRefreshToken()
         user.refreshToken = refreshToken
-        await user.save( validateBeforeSave=false )
+        await user.save( {validateBeforeSave:false })
         return { accessToken, refreshToken }
     }
     catch(error){
@@ -103,14 +103,14 @@ const loginUser = asyncHandler(async (req, res) => {
     if (!(username||email)){
         throw new ApiError(400, "Username or email is required")
     }
-   const user =User.findOne({
+   const user = await User.findOne({
         $or:[{username}, {email}]
 })
     if(!user){
         throw new ApiError(404, "User not found with the provided username or email")
     }
 
-    const isPasswordValid=await  user.isPasswordCorrect(password)
+    const isPasswordValid=await user.isPasswordCorrect(password)
 
     if(!isPasswordValid) {
         throw new ApiError(401, "Invalid user credentials")
