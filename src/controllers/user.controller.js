@@ -261,10 +261,21 @@ const updateAccountDetails = asyncHandler(async (req, res) => {
         if(!avatarLocalPath){
             throw new ApiError(400, "Avatar file is required")
         }
+
+        const previousAvatar = await User.findById(req.user._id)
+
         const avatar = await uploadOnCloudinary(avatarLocalPath)
         if(!avatar.url){
             throw new ApiError(500, "Something went wrong while uploading avatar")
         }
+        
+         // delete old avatar AFTER new upload
+    if (previousAvatar.avatar) {
+        const publicId = previousAvatar.avatar.split("/").pop().split(".")[0]
+        await cloudinary.uploader.destroy(publicId)
+    }
+
+
      const user = await User.findByIdAndUpdate(
         req.user._id,
         {   
@@ -272,8 +283,8 @@ const updateAccountDetails = asyncHandler(async (req, res) => {
                 avatar: avatar.url
             }
         },
-        {new:true}.select("-password -refreshToken")
-     )
+        {new:true}
+     ).select("-password -refreshToken")
 
      return res.
         status(200)
@@ -299,8 +310,8 @@ const updateAccountDetails = asyncHandler(async (req, res) => {
                 coverImage: coverImage.url
             }
         },
-        {new:true}.select("-password -refreshToken")
-     )
+        {new:true}
+     ).select("-password -refreshToken")
 
         return res.
         status(200)
