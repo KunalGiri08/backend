@@ -34,7 +34,7 @@ router.route("/login").post(loginUser) // login user
 //secured route - logout user
 router.route("/logout").post(verifyJWT, logoutUser)
 
-router.route("/refresh-access-token").post(refreshAccessToken) // generate new access 
+router.route("/refresh-token").post(refreshAccessToken) // generate new access 
 // token using refresh token 
 router.route("/change-password").post(verifyJWT, changeCurrentPassword)
 router.route("/current-user").get(verifyJWT, getCurrentUser)

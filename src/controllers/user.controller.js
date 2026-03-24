@@ -4,6 +4,7 @@ import { User} from "../models/user.model.js"
 import {uploadOnCloudinary} from "../utils/cloudinary.js"
 import { ApiResponse } from "../utils/ApiResponse.js"
 import jwt from "jsonwebtoken"
+import mongoose from "mongoose";
 
 const generateAccessAndRefreshToken = async(userId) => {
     try{
@@ -294,7 +295,7 @@ const updateAccountDetails = asyncHandler(async (req, res) => {
 
     })
 
-     const updateCoverImage = asyncHandler(async (req, res) => {
+     const updateUserCoverImage = asyncHandler(async (req, res) => {
         const coverImageLocalPath = req.file?.path
         if(!coverImageLocalPath){
             throw new ApiError(400, "Cover image file is required")
@@ -460,6 +461,7 @@ export {
     getCurrentUser,
     updateAccountDetails,
     updateUserAvatar,
-    updateCoverImage,
-    getUserChannelProfile
+    updateUserCoverImage,
+    getUserChannelProfile,
+    getWatchHistory
 }
