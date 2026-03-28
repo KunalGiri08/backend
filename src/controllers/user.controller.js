@@ -225,7 +225,7 @@ const changeCurrentPassword = asyncHandler(async (req, res) => {
         new ApiResponse(200, {}, "Password changed successfully")
     )
 })
-    const getCurrentUser= asyncHandler(async (req, res) => {
+const getCurrentUser= asyncHandler(async (req, res) => {
         return res.status(200).json(
             new ApiResponse(200, req.user, "Current user details fetched successfully")
         )       
@@ -257,7 +257,7 @@ const updateAccountDetails = asyncHandler(async (req, res) => {
 
     })
 
-    const updateUserAvatar = asyncHandler(async (req, res) => {
+const updateUserAvatar = asyncHandler(async (req, res) => {
         const avatarLocalPath = req.file?.path
         if(!avatarLocalPath){
             throw new ApiError(400, "Avatar file is required")
@@ -295,7 +295,7 @@ const updateAccountDetails = asyncHandler(async (req, res) => {
 
     })
 
-     const updateUserCoverImage = asyncHandler(async (req, res) => {
+const updateUserCoverImage = asyncHandler(async (req, res) => {
         const coverImageLocalPath = req.file?.path
         if(!coverImageLocalPath){
             throw new ApiError(400, "Cover image file is required")
@@ -322,7 +322,7 @@ const updateAccountDetails = asyncHandler(async (req, res) => {
     })
 
 
-   const getUserChannelProfile= asyncHandler(async(req, res)=>{
+const getUserChannelProfile= asyncHandler(async(req, res)=>{
      
     const { username } = req.params
 
