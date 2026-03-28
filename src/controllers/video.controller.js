@@ -222,6 +222,7 @@ const video = await Video.aggregate([
     {
         $project: {
             "videoFile.url": 1,
+            "thumbnail.url": 1,
             title: 1,
             description: 1,
             views: 1,
@@ -266,72 +267,73 @@ const updateVideo = asyncHandler(async (req, res) => {
     if (!isValidObjectId(videoId)) {
         throw new ApiError(400, "Invalid videoId");
     }
-     if (!req.user?._id) {
-    throw new ApiError(401, "Unauthorized");
-    } 
-    if (!title.trim() || !description.trim()) {
-    throw new ApiError(400, "Title and description cannot be empty");
-}
 
-    const video = await Video.findById(videoId);
-
-    if (!video) {
-        throw new ApiError(404, "No video found");
+    if (!req.user?._id) {
+        throw new ApiError(401, "Unauthorized");
     }
 
-    if (video?.owner.toString() !== req.user?._id.toString()) {
-        throw new ApiError(
-            403,
-            "You can't edit this video as you are not the owner"
-        );
+    if (!title?.trim() || !description?.trim()) {
+        throw new ApiError(400, "Title and description cannot be empty");
     }
-
-    //deleting old thumbnail and updating with new one
-    const thumbnailToDelete = video.thumbnail.public_id;
 
     const thumbnailLocalPath = req.file?.path;
 
-    if (!thumbnailLocalPath) {
-        throw new ApiError(400, "thumbnail is required");
+    let updateFields = {
+        title,
+        description
+    };
+
+    let oldThumbnailId;
+
+    // ✅ get old thumbnail FIRST (fix)
+    if (thumbnailLocalPath) {
+        const existingVideo = await Video.findById(videoId).select("thumbnail.public_id");
+        oldThumbnailId = existingVideo?.thumbnail?.public_id;
+
+        const uploaded = await uploadOnCloudinary(thumbnailLocalPath);
+
+        if (!uploaded) {
+            throw new ApiError(500, "Thumbnail upload failed");
+        }
+
+        updateFields.thumbnail = {
+            public_id: uploaded.public_id,
+            url: uploaded.url
+        };
     }
 
-    const thumbnail = await uploadOnCloudinary(thumbnailLocalPath);
-
-    if (!thumbnail) {
-        throw new ApiError(500, "Thumbnail upload failed");
-    }
-
-    const updatedVideo = await Video.findByIdAndUpdate(
-        videoId,
+    const updatedVideo = await Video.findOneAndUpdate(
         {
-            $set: {
-                title,
-                description,
-                thumbnail: {
-                    public_id: thumbnail.public_id,
-                    url: thumbnail.url
-                }
-            }
+            _id: videoId,
+            owner: req.user._id
         },
-        { new: true }
+        {
+            $set: updateFields
+        },
+        {
+            new: true
+        }
     );
 
     if (!updatedVideo) {
-        throw new ApiError(500, "Failed to update video please try again");
+        throw new ApiError(
+            404,
+            "Video not found or you are not the owner"
+        );
     }
 
-   
+    // ✅ now safe delete
+    if (thumbnailLocalPath && oldThumbnailId) {
         try {
-            await deleteOnCloudinary(thumbnailToDelete);
+            await deleteOnCloudinary(oldThumbnailId);
         } catch (error) {
-    console.error("Failed to delete old thumbnail");
-      }
-    
+            console.error("Failed to delete old thumbnail");
+        }
+    }
 
-
-    return res
-        .status(200)
-        .json(new ApiResponse(200, updatedVideo, "Video updated successfully"));
+    return res.status(200).json(
+        new ApiResponse(200, updatedVideo, "Video updated successfully")
+    );
 });
 //delete a video
 const deleteVideo = asyncHandler(async (req, res) => {
@@ -402,7 +404,10 @@ const togglePublishStatus = asyncHandler(async (req, res) => {
                 }
             }
         ],
-        { new: true }
+        { 
+            new: true ,
+            updatePipeline: true  
+        }
     );
 
     if (!updatedVideo) {
